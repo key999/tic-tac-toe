@@ -1,0 +1,6 @@
+1 - 10: client's ID for the session
+
+
+11: server.py, class Connection, def run, destination client not connected to server
+12: game.py, class Game, def run, client closed game
+13: game.py, class Game, def run, game started
