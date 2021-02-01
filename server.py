@@ -28,8 +28,12 @@ class Server(threading.Thread):
                 connection, address = server_socket.accept()
                 self._connections[connection_id] = connection, address
                 print(f"SerThr: Connection established, address: {address}\nLaunching connection thread...")  # DEBUG
-                Connection(connection, address, connection_id).start()
+
+                connection_id.append(Connection(connection, address, connection_id).start())
                 print("SerThr: Thread launched, continuing to listen")  # DEBUG
+
+            for i in connection_id:
+                i.join()
 
     @property
     def connections_ids(self):
