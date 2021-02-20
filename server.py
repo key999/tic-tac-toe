@@ -16,6 +16,7 @@ class Server(threading.Thread):
     def run(self) -> None:
         with socket.socket() as server_socket:
             print("SerThr: Initialized, binding socket... ", end='')  # DEBUG
+            sleep(1)  # DEBUG
             server_socket.bind(("0.0.0.0", self._port))
             print("Socket bound! Listening...")  # DEBUG
             server_socket.listen()
@@ -29,18 +30,18 @@ class Server(threading.Thread):
                 self._connections[connection_id] = connection, address
                 print(f"SerThr: Connection established, address: {address}\nLaunching connection thread...")  # DEBUG
 
-                connection_id.append(Connection(connection, address, connection_id).start())
+                Connection(connection, address, connection_id).start()
                 print("SerThr: Thread launched, continuing to listen")  # DEBUG
-
-            for i in connection_id:
-                i.join()
 
     @property
     def connections_ids(self):
-        return self._connections.keys()
+        return [i for i in self._connections.keys()]
 
     def connection(self, connection_id: int) -> str or socket.socket:
         return self._connections[connection_id]
+
+    def delete_connection(self, con_id):
+        self._connections.pop(con_id)
 
 
 class Connection(threading.Thread):
@@ -53,31 +54,40 @@ class Connection(threading.Thread):
         self._connection_1_id = connection_1_id
 
     def run(self):
-        sleep(3)
+        sleep(2)  # DEBUG
         print("\tConThr: Connection thread here, sending ID to client")  # DEBUG
-        self._connection_1_sock.send(f"{self._connection_1_id}".encode())
+        self._connection_1_sock.send(f"you:{self._connection_1_id}".encode())
 
-        print("\tConThr: Sending available IDs list to client.")  # DEBUG
-        self._connection_1_sock.send(server.connections_ids)
+        print("\tConThr: Sending available IDs list to client")  # DEBUG
+        self._connection_1_sock.send(f"clients:{str(list(server.connections_ids))[1:-1]}".encode())
 
-        while self._connection_2_id is None:
-            self._connection_2_id = self._connection_1_sock.recv().decode()
+        print(f"\tConThr: Waiting for client to supply match ID")  # DEBUG
+        while True:
+            self._connection_2_id = int(self._connection_1_sock.recv(2048).decode())
             print(f"\tConThr: Client wants to connect to ID {self._connection_2_id}")  # DEBUG
+
+            # print(f'\n###\n{self._connection_2_id}\n###\n{server.connections_ids}')  # DEBUG
             if self._connection_2_id not in server.connections_ids:
                 print(f"\tConThr: {self._connection_2_id} is not yet connected, asking again...")  # DEBUG
                 self._connection_1_sock.send(f"11: destination not found".encode())
+                continue
+            elif self._connection_2_id == self._connection_1_id:
+                print(f"\tConThr: {self._connection_1_id} trying to connect to itself")  # DEBUG
+                self._connection_1_sock.send(f"14: self connection impossible".encode())
+                continue
+            break
 
         print(f"\tConThr: {self._connection_2_id} is already connected. Starting a game...")  # DEBUG
         self._connection_2_sock = server.connection(self._connection_2_id)[0]
         self._connection_2_address = server.connection(self._connection_2_id)[1]
         Game(self._connection_1_sock, self._connection_2_sock).run()
-        # print(f"\tConThr: Game between {self._connection_1_address} \
-        # and {self._connection_2_address} launched.")  # DEBUG
+        print(f"\tConThr: Game between {self._connection_1_address}\
+         and {self._connection_2_address} launched.")  # DEBUG
 
 
-class Game(threading.Thread):
+class Game:
     def __init__(self, connection_1_sock: socket.socket, connection_2_sock: socket.socket):
-        threading.Thread.__init__(self)
+        # threading.Thread.__init__(self)
         self._connections = connection_1_sock, connection_2_sock
 
     def run(self):
