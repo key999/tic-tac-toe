@@ -6,7 +6,7 @@ class Client:
     _available_clients = []
     _my_id = -1
 
-    def __init__(self, server_address: str, server_port: int):
+    def __init__(self, server_address: str = "127.0.0.1", server_port: int = 25555):
         self._server_address = server_address
         self._server_port = server_port
 
@@ -20,13 +20,6 @@ class Client:
                     break
                 sock.send(command.encode())
 
-    # @set
-    # def set_clients(self, clients_list):
-    #     self._available_clients = clients_list
-    #
-    # @set
-    # def set_my_id(self, my_id):
-    #     self._my_id = my_id
     @property
     def clients(self):
         return self._available_clients
@@ -54,8 +47,7 @@ class Listen(threading.Thread):
                 client._available_clients = response[8:].split(', ')
 
 
-
 if __name__ == "__main__":
     print("Game started, please specify:")
-    client = Client(input("Server address: "), int(input("Server port: ")))
+    client = Client()
     client.run()
